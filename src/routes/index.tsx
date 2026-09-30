@@ -132,8 +132,7 @@ function JevWorkbench() {
             </Title>
             <Text type="secondary" style={{ fontSize: 14 }}>
               Interactive playground to validate JSON messages, inspect question
-              structures, and execute fast, structured decisions with TypeSafe's
-              Jev System One model.
+              structures, and execute fast, structured decisions with System One - Compatible models.
             </Text>
           </div>
 

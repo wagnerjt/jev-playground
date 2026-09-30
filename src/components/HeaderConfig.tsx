@@ -135,7 +135,7 @@ export const HeaderConfig: React.FC<HeaderConfigProps> = ({
             icon={<ThunderboltOutlined />}
             style={{ padding: "4px 8px" }}
           >
-            Jev System One
+            System One
           </Tag>
         </div>
       </div>
