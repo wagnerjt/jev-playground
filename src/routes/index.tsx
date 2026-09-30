@@ -13,9 +13,9 @@ import type { SystemOneResult } from "@typesafe-ai/sdk";
 const { Content } = Layout;
 const { Title, Text } = Typography;
 
-export const Route = createFileRoute("/")({ component: JevWorkbench });
+export const Route = createFileRoute("/")({ component: SystemOnePlayground });
 
-function JevWorkbench() {
+function SystemOnePlayground() {
   // Configuration held in memory
   const [apiKey, setApiKey] = useState<string>("");
   const [baseUrl, setBaseUrl] = useState<string>("https://api.typesafe.ai");
