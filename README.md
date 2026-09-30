@@ -1,8 +1,18 @@
-# Jev Decision Workbench UI
+# System One - Model Compatible Playground
 
-An interactive React frontend for experimenting with [TypeSafe AI's Jev model](https://typesafe.ai/blog/introducing-system-one-models-and-jev) and System One decision-based architectures.
+An interactive React frontend for experimenting with System One API specification for decision-based model executions like [TypeSafe AI's Jev model](https://typesafe.ai/blog/introducing-system-one-models-and-jev).
 
-Built with [TanStack Start](https://tanstack.com/start), [Ant Design](https://ant.design/), and the [@typesafe-ai/sdk](https://docs.typesafe.ai/sdk/javascript).
+---
+
+## Playground
+
+### Inputs & Payload Breakdown
+
+![Jev Playground inputs and live payload breakdown](docs/playground_inputs.PNG)
+
+### Decisions & Probabilities
+
+![Jev Playground decision results and probability distributions](docs/playground_outputs.PNG)
 
 ---
 
@@ -61,11 +71,13 @@ Preview the production build:
 npm run preview
 ```
 
+Built with [TanStack Start](https://tanstack.com/start), [Ant Design](https://ant.design/), and the [@typesafe-ai/sdk](https://docs.typesafe.ai/sdk/javascript).
+
 ---
 
 ## Running with Local Ollama (`tev1:0.8b`)
 
-You can run System One models completely offline using [Ollama](https://ollama.com/) with the `tev1:0.8b` model.
+You can run System One models completely offline using [Ollama](https://ollama.com/) with System One Compatible models like the `tev1:0.8b` model.
 
 ### 1. Pull and Run the Ollama Model
 
@@ -77,9 +89,9 @@ ollama run tev1:0.8b
 
 By default, Ollama serves the local API on `http://localhost:11434`.
 
-### 2. Configure the Workbench UI
+### 2. Configure the Playground
 
-In the top configuration header of the workbench, configure the following:
+In the top configuration header of the playground, configure the following:
 
 | Setting              | Value                                 | Description                                                                                                                  |
 | -------------------- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
@@ -126,7 +138,7 @@ Click **Send to Jev** to evaluate your questions locally with zero cloud latency
 To evaluate against TypeSafe's hosted frontier model:
 
 1. Obtain an API key from the [TypeSafe Console](https://console.typesafe.ai/).
-2. In the workbench header:
+2. In the playground header:
    - Set **TypeSafe API Key** to your key (e.g. `ts_...`).
    - Set **API Base URL** to `https://api.typesafe.ai` (default).
    - Use `jev-latest` (or `jev-1.13.0`) in your payload's `model` property.
@@ -163,7 +175,7 @@ Evaluates state against an ordered rubric (from 2 to 10 levels):
 
 ## Project Structure
 
-- [src/routes/index.tsx](src/routes/index.tsx): Main workbench page coordinating the editor, visualizers, and state.
+- [src/routes/index.tsx](src/routes/index.tsx): Main playground page coordinating the editor, visualizers, and state.
 - [src/components/HeaderConfig.tsx](src/components/HeaderConfig.tsx): API key, endpoint base URL, and preset selection bar.
 - [src/components/JsonEditor.tsx](src/components/JsonEditor.tsx): Monospace JSON textarea with formatting, validation alerts, and submission controls.
 - [src/components/QuestionVisualizer.tsx](src/components/QuestionVisualizer.tsx): Breakdown of state, question types, criteria, and options.
