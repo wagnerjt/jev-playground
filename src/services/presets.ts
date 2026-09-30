@@ -15,9 +15,9 @@ export const SAMPLE_PRESETS: PresetPayload[] = [
       "Binary yes/no decisions with optional true/false criteria definitions.",
     json: JSON.stringify(
       {
+        model: "jev-latest",
         state:
           "I have asked three times now. Can I please just talk to a real person?",
-        model: "jev-latest",
         questions: {
           is_human_escalation: {
             type: "noul",
@@ -46,9 +46,9 @@ export const SAMPLE_PRESETS: PresetPayload[] = [
       "Categorical routing among named options with descriptive criteria.",
     json: JSON.stringify(
       {
+        model: "jev-latest",
         state:
           "Our API integration started returning 500 errors on every request about 20 minutes ago, and we can't process any customer orders until this is fixed.",
-        model: "jev-latest",
         questions: {
           department: {
             type: "choice",
@@ -77,9 +77,9 @@ export const SAMPLE_PRESETS: PresetPayload[] = [
       "Ordered rubric rating returning a calibrated position and distribution.",
     json: JSON.stringify(
       {
+        model: "jev-latest",
         state:
           "Why do I have to explain this again?! This is the third time you've charged my credit card without authorization!",
-        model: "jev-latest",
         questions: {
           frustration_level: {
             type: "score",
@@ -106,13 +106,13 @@ export const SAMPLE_PRESETS: PresetPayload[] = [
       "Real-world System One call evaluating multiple questions in parallel against one state.",
     json: JSON.stringify(
       {
+        model: "jev-latest",
         state: {
           ticket_id: "TICK-8492",
           customer_tier: "Enterprise",
           message:
             "Our checkout service crashed during peak traffic! We've lost $50,000 in the last 15 minutes. Fix this immediately or cancel our contract!",
         },
-        model: "jev-latest",
         questions: {
           priority: {
             type: "choice",
@@ -158,9 +158,9 @@ export const SAMPLE_PRESETS: PresetPayload[] = [
       "Run locally with Ollama (ollama run tev1:0.8b) at http://localhost:11434/v1/systemone",
     json: JSON.stringify(
       {
+        model: "tev1:0.8b",
         state:
           "Customer reported issue: unable to log in after password reset email arrived.",
-        model: "tev1:0.8b",
         questions: {
           category: {
             type: "choice",
