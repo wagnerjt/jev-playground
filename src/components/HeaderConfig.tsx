@@ -4,7 +4,6 @@ import {
   KeyOutlined,
   GlobalOutlined,
   AppstoreOutlined,
-  ThunderboltOutlined,
 } from "@ant-design/icons";
 import { SAMPLE_PRESETS } from "../services/presets";
 
@@ -39,31 +38,18 @@ export const HeaderConfig: React.FC<HeaderConfigProps> = ({
       <div
         style={{
           display: "flex",
-          flexWrap: "wrap",
+          flexDirection: "column",
           gap: 16,
-          alignItems: "center",
-          justifyContent: "space-between",
         }}
       >
-        <Space orientation="horizontal" size="middle" wrap style={{ flex: 1 }}>
-          {/* API Key Input */}
-          <div style={{ minWidth: 260, flex: "1 1 260px" }}>
-            <Text
-              strong
-              style={{ fontSize: 12, display: "block", marginBottom: 4 }}
-            >
-              <KeyOutlined style={{ marginRight: 4, color: "#1677ff" }} />
-              TypeSafe API Key:
-            </Text>
-            <Input.Password
-              placeholder="Paste your API key (held in memory)"
-              value={apiKey}
-              onChange={(e) => onApiKeyChange(e.target.value)}
-              allowClear
-              size="middle"
-            />
-          </div>
-
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 16,
+            alignItems: "center",
+          }}
+        >
           {/* Base URL Input */}
           <div style={{ minWidth: 260, flex: "1 1 260px" }}>
             <Text
@@ -82,61 +68,70 @@ export const HeaderConfig: React.FC<HeaderConfigProps> = ({
             />
           </div>
 
-          {/* Sample Preset Selector */}
-          <div style={{ minWidth: 240, flex: "1 1 240px" }}>
+          {/* API Key Input */}
+          <div style={{ minWidth: 260, flex: "1 1 260px" }}>
             <Text
               strong
               style={{ fontSize: 12, display: "block", marginBottom: 4 }}
             >
-              <AppstoreOutlined style={{ marginRight: 4, color: "#722ed1" }} />
-              Load Sample Preset:
+              <KeyOutlined style={{ marginRight: 4, color: "#1677ff" }} />
+              TypeSafe API Key:
             </Text>
-            <Select
-              placeholder="Select a sample payload..."
-              style={{ width: "100%" }}
+            <Input.Password
+              placeholder="Paste your API key (held in memory)"
+              value={apiKey}
+              onChange={(e) => onApiKeyChange(e.target.value)}
+              allowClear
               size="middle"
-              onChange={(value) => {
-                const found = SAMPLE_PRESETS.find((p) => p.id === value);
-                if (found) {
-                  onSelectPreset(found.json);
-                }
-              }}
-              options={SAMPLE_PRESETS.map((p) => ({
-                value: p.id,
-                label: (
-                  <Space orientation="horizontal" size="small">
-                    <Tag
-                      color={
-                        p.category === "noul"
-                          ? "cyan"
-                          : p.category === "choice"
-                            ? "blue"
-                            : p.category === "score"
-                              ? "purple"
-                              : p.category === "local"
-                                ? "green"
-                                : "gold"
-                      }
-                      style={{ fontSize: 10, padding: "0 4px" }}
-                    >
-                      {p.category.toUpperCase()}
-                    </Tag>
-                    <span>{p.name}</span>
-                  </Space>
-                ),
-              }))}
             />
           </div>
-        </Space>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <Tag
-            color="geekblue"
-            icon={<ThunderboltOutlined />}
-            style={{ padding: "4px 8px" }}
+        </div>
+
+        {/* Sample Preset Selector */}
+        <div style={{ width: "100%", maxWidth: 480 }}>
+          <Text
+            strong
+            style={{ fontSize: 12, display: "block", marginBottom: 4 }}
           >
-            System One
-          </Tag>
+            <AppstoreOutlined style={{ marginRight: 4, color: "#722ed1" }} />
+            Load Sample Preset: (replaces json)
+          </Text>
+          <Select
+            placeholder="Select a sample payload..."
+            style={{ width: "100%" }}
+            size="middle"
+            onChange={(value) => {
+              const found = SAMPLE_PRESETS.find((p) => p.id === value);
+              if (found) {
+                onSelectPreset(found.json);
+              }
+            }}
+            options={SAMPLE_PRESETS.map((p) => ({
+              value: p.id,
+              label: (
+                <Space orientation="horizontal" size="small">
+                  <Tag
+                    color={
+                      p.category === "noul"
+                        ? "cyan"
+                        : p.category === "choice"
+                          ? "blue"
+                          : p.category === "score"
+                            ? "purple"
+                            : p.category === "local"
+                              ? "green"
+                              : "gold"
+                    }
+                    style={{ fontSize: 10, padding: "0 4px" }}
+                  >
+                    {p.category.toUpperCase()}
+                  </Tag>
+                  <span>{p.name}</span>
+                </Space>
+              ),
+            }))}
+          />
         </div>
       </div>
     </Card>
