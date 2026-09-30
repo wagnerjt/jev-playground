@@ -128,7 +128,7 @@ function JevWorkbench() {
           {/* Page Heading */}
           <div style={{ marginBottom: 20 }}>
             <Title level={2} style={{ margin: "0 0 4px 0", color: "#1f2937" }}>
-              Jev Model Decision Workbench
+              System One Model-Compatible Playground
             </Title>
             <Text type="secondary" style={{ fontSize: 14 }}>
               Interactive playground to validate JSON messages, inspect question

@@ -19,7 +19,7 @@ export const Route = createRootRoute({
         content: "width=device-width, initial-scale=1",
       },
       {
-        title: "Jev Model Workbench | TypeSafe AI",
+        title: "System One Model-Compatible Playground",
       },
     ],
     links: [
