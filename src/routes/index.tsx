@@ -132,7 +132,8 @@ function SystemOnePlayground() {
             </Title>
             <Text type="secondary" style={{ fontSize: 14 }}>
               Interactive playground to validate JSON messages, inspect question
-              structures, and execute fast, structured decisions with System One - Compatible models.
+              structures, and execute fast, structured decisions with System One
+              - Compatible models.
             </Text>
           </div>
 

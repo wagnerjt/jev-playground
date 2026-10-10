@@ -85,7 +85,6 @@ export const HeaderConfig: React.FC<HeaderConfigProps> = ({
               size="middle"
             />
           </div>
-
         </div>
 
         {/* Sample Preset Selector */}
