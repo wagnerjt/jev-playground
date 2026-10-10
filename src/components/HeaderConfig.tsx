@@ -6,6 +6,7 @@ import {
   AppstoreOutlined,
 } from "@ant-design/icons";
 import { SAMPLE_PRESETS } from "../services/presets";
+import { TYPESAFE_API_BASE_URL } from "../constants";
 
 const { Text } = Typography;
 
@@ -60,7 +61,7 @@ export const HeaderConfig: React.FC<HeaderConfigProps> = ({
               API Base URL:
             </Text>
             <Input
-              placeholder="https://api.typesafe.ai"
+              placeholder={TYPESAFE_API_BASE_URL}
               value={baseUrl}
               onChange={(e) => onBaseUrlChange(e.target.value)}
               allowClear

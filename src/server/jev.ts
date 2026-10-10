@@ -1,6 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import { TypeSafeClient } from "@typesafe-ai/sdk";
 import type { SystemOneRequest, SystemOneResult } from "@typesafe-ai/sdk";
+import { TYPESAFE_API_BASE_URL } from "../constants";
+
+const TYPESAFE_API_HOSTNAME = new URL(TYPESAFE_API_BASE_URL).hostname;
 
 export interface EvaluateJevInput {
   apiKey?: string;
@@ -40,9 +43,7 @@ export const evaluateWithJev = createServerFn({ method: "POST" })
     }
 
     let resolvedBaseURL =
-      baseURL?.trim() ||
-      process.env.TYPESAFE_BASE_URL ||
-      "https://api.typesafe.ai";
+      baseURL?.trim() || process.env.TYPESAFE_BASE_URL || TYPESAFE_API_BASE_URL;
 
     // If endpoint is passed with /v1/systemone, strip it so TypeSafeClient's path concatenation doesn't duplicate it
     resolvedBaseURL = resolvedBaseURL.replace(/\/v1\/systemone\/?$/, "");
