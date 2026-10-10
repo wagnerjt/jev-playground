@@ -1,4 +1,10 @@
-import type { Questions, SystemOneRequest } from "@typesafe-ai/sdk";
+import type {
+  EntryType,
+  JsonValue,
+  Questions,
+  SystemOneRequest,
+} from "@typesafe-ai/sdk";
+import { z } from "zod";
 
 export interface ValidationError {
   path: string;
@@ -11,6 +17,86 @@ export interface ValidationResult {
   parsedPayload?: SystemOneRequest;
   errors: ValidationError[];
 }
+
+const jsonValueSchema: z.ZodType<JsonValue> = z.lazy(() =>
+  z.union([
+    z.string(),
+    z.number(),
+    z.boolean(),
+    z.null(),
+    z.array(jsonValueSchema),
+    z.record(z.string(), jsonValueSchema),
+  ]),
+);
+
+const entryTypeSchema: z.ZodType<EntryType> = z.union([
+  z.string(),
+  z.record(z.string(), jsonValueSchema),
+  z.array(jsonValueSchema),
+  z.null(),
+]);
+
+const choiceQuestionSchema = z
+  .object({
+    type: z.literal("choice"),
+    instructions: entryTypeSchema.optional(),
+    criteria: z
+      .record(z.string(), entryTypeSchema)
+      .refine((criteria) => Object.keys(criteria).length > 0, {
+        message: "At least one choice option is required.",
+      })
+      .refine((criteria) => Object.keys(criteria).length <= 255, {
+        message: "A maximum of 255 choice options is allowed.",
+      }),
+  })
+  .loose();
+
+const scoreQuestionSchema = z
+  .object({
+    type: z.literal("score"),
+    instructions: entryTypeSchema.optional(),
+    criteria: z.tuple([entryTypeSchema, entryTypeSchema]).rest(entryTypeSchema),
+  })
+  .loose();
+
+const noulQuestionSchema = z
+  .object({
+    type: z.literal("noul"),
+    instructions: entryTypeSchema.optional(),
+    criteria: z
+      .object({
+        true: entryTypeSchema.optional(),
+        false: entryTypeSchema.optional(),
+      })
+      .strict()
+      .nullable()
+      .optional(),
+  })
+  .loose();
+
+const questionSchema = z.discriminatedUnion("type", [
+  choiceQuestionSchema,
+  scoreQuestionSchema,
+  noulQuestionSchema,
+]);
+
+const payloadSchema = z
+  .object({
+    state: entryTypeSchema,
+    model: z
+      .string()
+      .refine((model) => model.trim().length > 0, {
+        message:
+          "Property 'model' must be a non-empty string (e.g. 'jev-latest' or 'jev-1.13.0').",
+      })
+      .optional(),
+    questions: z
+      .record(z.string(), questionSchema)
+      .refine((questions) => Object.keys(questions).length > 0, {
+        message: "At least one question is required in 'questions'.",
+      }),
+  })
+  .loose();
 
 /**
  * Validates a questions map using SDK rules:
@@ -38,13 +124,138 @@ export const validateQuestionsHelper = (questions: Questions): void => {
   }
 };
 
+const getValueAtPath = (value: unknown, path: PropertyKey[]): unknown =>
+  path.reduce<unknown>((current, segment) => {
+    if (
+      current === null ||
+      (typeof current !== "object" && typeof current !== "function")
+    ) {
+      return undefined;
+    }
+    return Reflect.get(current, segment);
+  }, value);
+
+const toValidationError = (
+  issue: z.core.$ZodIssue,
+  payload: Record<string, unknown>,
+): ValidationError => {
+  let path = issue.path.map(String).join(".") || "root";
+  const [root, questionName, field] = issue.path.map(String);
+  const question =
+    questionName && isRecord(payload.questions)
+      ? payload.questions[questionName]
+      : undefined;
+  const criteria =
+    isRecord(question) && field === "criteria" ? question.criteria : undefined;
+  let message = issue.message;
+
+  if (root === "state") {
+    message =
+      getValueAtPath(payload, issue.path) === undefined
+        ? "Missing required property 'state' (can be text string, JSON object, array, or null)."
+        : "Property 'state' must be a string, JSON object, array, or null.";
+  } else if (root === "model") {
+    message =
+      "Property 'model' must be a non-empty string (e.g. 'jev-latest' or 'jev-1.13.0').";
+  } else if (root === "questions" && issue.path.length === 1) {
+    if (payload.questions === undefined) {
+      message = "Missing required property 'questions' map.";
+    } else if (
+      isRecord(payload.questions) &&
+      Object.keys(payload.questions).length === 0
+    ) {
+      message = "At least one question is required in 'questions'.";
+    } else {
+      message =
+        "Property 'questions' must be an object map of question IDs to Question objects.";
+    }
+  } else if (root === "questions" && questionName) {
+    if (issue.path.length === 2) {
+      if (!isRecord(question)) {
+        message = `Question '${questionName}' must be an object.`;
+      } else if (typeof question.type !== "string" || !question.type) {
+        message = `Question '${questionName}' must have a 'type' property ('choice', 'noul', or 'score').`;
+      } else {
+        message = `Invalid question type '${question.type}'. Supported types: 'choice', 'noul', 'score'.`;
+      }
+    } else if (field === "type") {
+      const questionType = isRecord(question) ? question.type : undefined;
+      if (typeof questionType !== "string" || !questionType) {
+        message = `Question '${questionName}' must have a 'type' property ('choice', 'noul', or 'score').`;
+      } else {
+        message = `Invalid question type '${questionType}'. Supported types: 'choice', 'noul', 'score'.`;
+      }
+    } else if (field === "instructions") {
+      message = `Question '${questionName}' instructions must be a string, JSON object, array, or null.`;
+    } else if (field === "criteria" && isRecord(question)) {
+      if (question.type === "choice") {
+        if (criteria === undefined || criteria === null) {
+          message = `Choice question '${questionName}' must have a 'criteria' object mapping labels to descriptions.`;
+        } else if (!isRecord(criteria)) {
+          message = `Choice criteria for '${questionName}' must be a map of labels to descriptions, not a list.`;
+        } else if (Object.keys(criteria).length === 0) {
+          message = `Choice question '${questionName}' must define at least one option label in 'criteria'.`;
+        } else if (Object.keys(criteria).length > 255) {
+          message = `Choice question '${questionName}' has ${Object.keys(criteria).length} options. Maximum allowed is 255.`;
+        } else {
+          message = `Choice criteria for '${questionName}' must contain valid descriptions.`;
+        }
+      } else if (question.type === "score") {
+        if (Array.isArray(criteria) && criteria.length < 2) {
+          path = `questions.${questionName}.criteria`;
+        }
+        if (criteria === undefined || criteria === null) {
+          message = `Score question '${questionName}' must have a 'criteria' array with at least 2 rubric levels.`;
+        } else if (!Array.isArray(criteria)) {
+          message = `Score criteria for '${questionName}' must be an array of ordered descriptions, not an object.`;
+        } else if (criteria.length < 2) {
+          message = `Score question '${questionName}' has ${criteria.length} criteria; at least two score levels are required.`;
+        } else {
+          message = `Score criteria for '${questionName}' must contain valid descriptions.`;
+        }
+      } else if (question.type === "noul") {
+        message = `Noul criteria for '${questionName}' must be an object with optional 'true' and 'false' keys.`;
+      }
+    }
+  }
+
+  return {
+    path,
+    message,
+    severity: "error",
+  };
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+const collectWarnings = (questions: unknown): ValidationError[] => {
+  if (!isRecord(questions)) return [];
+
+  return Object.entries(questions).flatMap(([name, question]) => {
+    if (
+      isRecord(question) &&
+      question.type === "score" &&
+      Array.isArray(question.criteria) &&
+      question.criteria.length > 10
+    ) {
+      return [
+        {
+          path: `questions.${name}.criteria`,
+          message: `Score question '${name}' has ${question.criteria.length} criteria. The Jev API accepts up to 10 score levels.`,
+          severity: "warning" as const,
+        },
+      ];
+    }
+
+    return [];
+  });
+};
+
 /**
- * Validates a raw JSON payload intended for the TypeSafe Jev model.
- * Uses @typesafe-ai/sdk types and validation routines alongside thorough structural checks.
+ * Validates a raw JSON payload against the System One request specification.
  */
 export function validateJevPayload(rawJson: string): ValidationResult {
-  const errors: ValidationError[] = [];
-
   if (!rawJson.trim()) {
     return {
       isValid: false,
@@ -75,7 +286,7 @@ export function validateJevPayload(rawJson: string): ValidationResult {
     };
   }
 
-  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+  if (!isRecord(parsed)) {
     return {
       isValid: false,
       errors: [
@@ -89,208 +300,22 @@ export function validateJevPayload(rawJson: string): ValidationResult {
     };
   }
 
-  const obj = parsed as Record<string, unknown>;
+  const result = payloadSchema.safeParse(parsed);
+  const warnings = collectWarnings(parsed.questions);
 
-  // Check state
-  if (!("state" in obj)) {
-    errors.push({
-      path: "state",
-      message:
-        "Missing required property 'state' (can be text string, JSON object, array, or null).",
-      severity: "error",
-    });
+  if (!result.success) {
+    return {
+      isValid: false,
+      errors: [
+        ...result.error.issues.map((issue) => toValidationError(issue, parsed)),
+        ...warnings,
+      ],
+    };
   }
-
-  // Check model if provided
-  if ("model" in obj && obj.model !== undefined) {
-    if (typeof obj.model !== "string" || !obj.model.trim()) {
-      errors.push({
-        path: "model",
-        message:
-          "Property 'model' must be a non-empty string (e.g. 'jev-latest' or 'jev-1.13.0').",
-        severity: "error",
-      });
-    }
-  }
-
-  // Check questions
-  if (!("questions" in obj)) {
-    errors.push({
-      path: "questions",
-      message: "Missing required property 'questions' map.",
-      severity: "error",
-    });
-    return { isValid: false, errors };
-  }
-
-  if (
-    typeof obj.questions !== "object" ||
-    obj.questions === null ||
-    Array.isArray(obj.questions)
-  ) {
-    errors.push({
-      path: "questions",
-      message:
-        "Property 'questions' must be an object map of question IDs to Question objects.",
-      severity: "error",
-    });
-    return { isValid: false, errors };
-  }
-
-  const questionsMap = obj.questions as Record<string, unknown>;
-  const questionKeys = Object.keys(questionsMap);
-
-  if (questionKeys.length === 0) {
-    errors.push({
-      path: "questions",
-      message: "At least one question is required in 'questions'.",
-      severity: "error",
-    });
-    return { isValid: false, errors };
-  }
-
-  // Per-question validation
-  for (const [key, qRaw] of Object.entries(questionsMap)) {
-    const qPath = `questions.${key}`;
-
-    if (typeof qRaw !== "object" || qRaw === null || Array.isArray(qRaw)) {
-      errors.push({
-        path: qPath,
-        message: `Question '${key}' must be an object.`,
-        severity: "error",
-      });
-      continue;
-    }
-
-    const q = qRaw as Record<string, unknown>;
-
-    // Type field
-    if (!q.type || typeof q.type !== "string") {
-      errors.push({
-        path: `${qPath}.type`,
-        message: `Question '${key}' must have a 'type' property ('choice', 'noul', or 'score').`,
-        severity: "error",
-      });
-      continue;
-    }
-
-    if (!["choice", "noul", "score"].includes(q.type)) {
-      errors.push({
-        path: `${qPath}.type`,
-        message: `Invalid question type '${q.type}'. Supported types: 'choice', 'noul', 'score'.`,
-        severity: "error",
-      });
-      continue;
-    }
-
-    // Instructions field
-    if (!("instructions" in q) || q.instructions === undefined) {
-      errors.push({
-        path: `${qPath}.instructions`,
-        message: `Question '${key}' is missing required 'instructions'.`,
-        severity: "error",
-      });
-    }
-
-    // Type-specific validations
-    if (q.type === "choice") {
-      if (
-        !("criteria" in q) ||
-        q.criteria === undefined ||
-        q.criteria === null
-      ) {
-        errors.push({
-          path: `${qPath}.criteria`,
-          message: `Choice question '${key}' must have a 'criteria' object mapping labels to descriptions.`,
-          severity: "error",
-        });
-      } else if (typeof q.criteria !== "object" || Array.isArray(q.criteria)) {
-        errors.push({
-          path: `${qPath}.criteria`,
-          message: `Choice criteria for '${key}' must be a map of labels to descriptions, not a list.`,
-          severity: "error",
-        });
-      } else {
-        const optionKeys = Object.keys(q.criteria as Record<string, unknown>);
-        if (optionKeys.length === 0) {
-          errors.push({
-            path: `${qPath}.criteria`,
-            message: `Choice question '${key}' must define at least one option label in 'criteria'.`,
-            severity: "error",
-          });
-        } else if (optionKeys.length > 255) {
-          errors.push({
-            path: `${qPath}.criteria`,
-            message: `Choice question '${key}' has ${optionKeys.length} options. Maximum allowed is 255.`,
-            severity: "error",
-          });
-        }
-      }
-    } else if (q.type === "score") {
-      if (
-        !("criteria" in q) ||
-        q.criteria === undefined ||
-        q.criteria === null
-      ) {
-        errors.push({
-          path: `${qPath}.criteria`,
-          message: `Score question '${key}' must have a 'criteria' array with at least 2 rubric levels.`,
-          severity: "error",
-        });
-      } else if (!Array.isArray(q.criteria)) {
-        errors.push({
-          path: `${qPath}.criteria`,
-          message: `Score criteria for '${key}' must be an array of ordered descriptions, not an object.`,
-          severity: "error",
-        });
-      } else if (q.criteria.length < 2) {
-        errors.push({
-          path: `${qPath}.criteria`,
-          message: `Score question '${key}' has ${q.criteria.length} criteria; at least two score levels are required.`,
-          severity: "error",
-        });
-      } else if (q.criteria.length > 10) {
-        errors.push({
-          path: `${qPath}.criteria`,
-          message: `Score question '${key}' has ${q.criteria.length} criteria. The Jev API accepts up to 10 score levels.`,
-          severity: "warning",
-        });
-      }
-    } else if (q.type === "noul") {
-      if ("criteria" in q && q.criteria !== null && q.criteria !== undefined) {
-        if (typeof q.criteria !== "object" || Array.isArray(q.criteria)) {
-          errors.push({
-            path: `${qPath}.criteria`,
-            message: `Noul criteria for '${key}' must be an object with optional 'true' and 'false' keys.`,
-            severity: "error",
-          });
-        }
-      }
-    }
-  }
-
-  // Also invoke SDK question validation rules
-  try {
-    validateQuestionsHelper(questionsMap as unknown as Questions);
-  } catch (sdkErr) {
-    const sdkMsg = sdkErr instanceof Error ? sdkErr.message : String(sdkErr);
-    // Only add if not already covered
-    if (!errors.some((e) => e.message === sdkMsg)) {
-      errors.push({
-        path: "questions",
-        message: `SDK validation: ${sdkMsg}`,
-        severity: "error",
-      });
-    }
-  }
-
-  const hasFatalErrors = errors.some((e) => e.severity === "error");
 
   return {
-    isValid: !hasFatalErrors,
-    parsedPayload: hasFatalErrors
-      ? undefined
-      : (obj as unknown as SystemOneRequest),
-    errors,
+    isValid: true,
+    parsedPayload: result.data as SystemOneRequest,
+    errors: warnings,
   };
 }
