@@ -75,9 +75,13 @@ Built with [TanStack Start](https://tanstack.com/start), [Ant Design](https://an
 
 ---
 
-## Running with Local Ollama (`tev1:0.8b`)
+## Running with Local Ollama
 
-You can run System One models completely offline using [Ollama](https://ollama.com/) with System One Compatible models like the `tev1:0.8b` model.
+You can run System One models completely offline using [Ollama](https://ollama.com/) with System One Compatible models like:
+
+- [Together AI's tev1](https://ollama.com/library/tev1)
+- [Strands Decider](https://huggingface.co/StrandsAgents/strands-decider-2B-hobson-v19)
+- [Cloudflare Clef](https://huggingface.co/Cloudflare/clef#jev--systemone-api)
 
 ### 1. Pull and Run the Ollama Model
 
@@ -130,6 +134,40 @@ Click the **Load Sample Preset** dropdown in the header and choose **Local Ollam
 ```
 
 Click **Send to Jev** to evaluate your questions locally with zero cloud latency.
+
+## Running with the LiteLLM Gateway
+
+LiteLLM's `/v1/systemone` route accepts the System One request format used by this playground and returns compatible answers. Use this route rather than `/v1/decisions`, which uses LiteLLM's OpenAI Decisions request and response format.
+
+### 1. Configure a decision model
+
+Add a TypeSafe model to your LiteLLM `config.yaml` and provide your TypeSafe API key to the proxy:
+
+```yaml
+model_list:
+  - model_name: jev-latest
+    litellm_params:
+      model: typesafe/jev-latest
+      api_key: os.environ/TYPESAFE_API_KEY
+```
+
+Start LiteLLM with the configuration:
+
+```bash
+litellm --config config.yaml
+```
+
+LiteLLM's decisions routes are available in `v1.104.2` and later on the `1.104.x` line, and `v1.105.0-rc.3` and later. Check the [LiteLLM decisions documentation](https://docs.litellm.ai/docs/decisions) for current version support and configuration details.
+
+### 2. Configure the Playground
+
+In the playground header:
+
+- Set **API Base URL** to your LiteLLM proxy root, for example `http://localhost:4000`. The SDK appends `/v1/systemone`.
+- Set **TypeSafe API Key** to a LiteLLM proxy key if your proxy requires authentication. LiteLLM uses the TypeSafe key configured on the proxy to call TypeSafe.
+- Use `jev-latest` as the payload's `model`, matching the `model_name` in `config.yaml`.
+
+Click **Send to Jev** to route the System One request through LiteLLM.
 
 ---
 
