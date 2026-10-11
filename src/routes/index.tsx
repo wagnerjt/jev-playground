@@ -8,6 +8,7 @@ import { ResponseVisualizer } from "../components/ResponseVisualizer";
 import { SAMPLE_PRESETS } from "../services/presets";
 import { validateJevPayload } from "../services/validation";
 import { evaluateWithJev } from "../server/jev";
+import { TYPESAFE_API_BASE_URL } from "../constants";
 import type { SystemOneResult } from "@typesafe-ai/sdk";
 
 const { Content } = Layout;
@@ -18,7 +19,7 @@ export const Route = createFileRoute("/")({ component: SystemOnePlayground });
 function SystemOnePlayground() {
   // Configuration held in memory
   const [apiKey, setApiKey] = useState<string>("");
-  const [baseUrl, setBaseUrl] = useState<string>("https://api.typesafe.ai");
+  const [baseUrl, setBaseUrl] = useState<string>(TYPESAFE_API_BASE_URL);
 
   // Raw JSON state initialized with the first sample preset (Urgency & Escalation Noul)
   const [rawJson, setRawJson] = useState<string>(SAMPLE_PRESETS[0].json);
@@ -132,7 +133,8 @@ function SystemOnePlayground() {
             </Title>
             <Text type="secondary" style={{ fontSize: 14 }}>
               Interactive playground to validate JSON messages, inspect question
-              structures, and execute fast, structured decisions with System One - Compatible models.
+              structures, and execute fast, structured decisions with System One
+              - Compatible models.
             </Text>
           </div>
 
